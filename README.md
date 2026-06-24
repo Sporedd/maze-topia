@@ -1,4 +1,4 @@
-# Maze TD
+# Maze Topia
 
 A browser tower-defence game with **true mazing**: you place towers anywhere on
 open ground to sculpt the path enemies must walk. The game prevents you from
