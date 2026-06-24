@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maze TD</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        background: #0d1117;
+        color: #e6edf3;
+        display: flex;
+        justify-content: center;
+        padding: 16px;
+      }
+      #app { display: flex; gap: 16px; align-items: flex-start; }
+      #game { border: 1px solid #30363d; border-radius: 6px; overflow: hidden; line-height: 0; }
+      #panel { width: 220px; display: flex; flex-direction: column; gap: 12px; }
+      .stats { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+      .stats b { color: #58a6ff; }
+      .towers { display: flex; flex-direction: column; gap: 8px; }
+      .tower-btn {
+        text-align: left;
+        background: #161b22;
+        border: 1px solid #30363d;
+        color: #e6edf3;
+        padding: 8px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+      }
+      .tower-btn:hover { border-color: #58a6ff; }
+      .tower-btn.selected { border-color: #58a6ff; background: #1f2937; }
+      .tower-btn small { display: block; color: #8b949e; margin-top: 2px; }
+      kbd {
+        display: inline-block; min-width: 14px; text-align: center;
+        background: #0d1117; border: 1px solid #30363d; border-radius: 4px;
+        padding: 0 4px; margin-right: 4px; font-size: 11px; color: #8b949e;
+      }
+      .primary {
+        background: #238636; border: 1px solid #2ea043; color: #fff;
+        padding: 10px; border-radius: 6px; cursor: pointer; font: inherit; font-weight: bold;
+      }
+      .primary:disabled { opacity: 0.4; cursor: not-allowed; }
+      .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+      .toggle input { cursor: pointer; }
+      #message {
+        font-size: 13px; color: #8b949e; min-height: 18px;
+      }
+      #overlay {
+        position: fixed; inset: 0; display: none;
+        align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.7); flex-direction: column; gap: 16px;
+      }
+      #overlay h1 { margin: 0; }
+      #overlay button { font: inherit; padding: 10px 20px; cursor: pointer; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #e6edf3; }
+      .hint { font-size: 12px; color: #6e7681; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="game"></div>
+      <div id="panel">
+        <div class="stats">
+          <div>Money: <b id="money">0</b></div>
+          <div>Lives: <b id="lives">0</b></div>
+          <div>Wave: <b id="wave">0</b></div>
+          <div title="Enemy HP scales with money tied up in economy towers">
+            Threat: <b id="threat">×1.0</b>
+          </div>
+        </div>
+        <div class="towers" id="towers"></div>
+        <button class="primary" id="start">Start Wave</button>
+        <label class="toggle"><input type="checkbox" id="auto" /> Auto-start waves</label>
+        <div id="message"></div>
+        <div class="hint">
+          Pick a tower (or press <kbd>1</kbd>–<kbd>5</kbd>), then click or drag on the
+          grid to build. <kbd>Esc</kbd> deselects. Right-click a tower to sell it (70%
+          refund). Farms make money each second; Mills boost nearby farms; Banks pay
+          interest each wave. Start a wave early for a cash bonus.
+        </div>
+      </div>
+    </div>
+    <div id="overlay">
+      <h1 id="overlay-title"></h1>
+      <button id="restart">Play again</button>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
