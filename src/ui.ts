@@ -1,4 +1,13 @@
-import { CELL, GAME_SPEEDS, LEVELS, TOWER_DEFS, type LevelDef, type Point, type TowerDef } from './config.ts';
+import {
+  CELL,
+  GAME_SPEEDS,
+  LEVELS,
+  SPLASH_DAMAGE_FRACTION,
+  TOWER_DEFS,
+  type LevelDef,
+  type Point,
+  type TowerDef,
+} from './config.ts';
 import type { Game } from './game.ts';
 import type { Progress } from './progress.ts';
 
@@ -24,7 +33,10 @@ function describeTower(def: TowerDef): string {
     case 'attack': {
       const dps = Math.round(def.damage * def.fireRate * 10) / 10;
       const range = Math.round((def.range / CELL) * 10) / 10;
-      return `dmg ${def.damage} · rate ${def.fireRate}/s · ${dps} dps · range ${range}`;
+      const base = `dmg ${def.damage} · rate ${def.fireRate}/s · ${dps} dps · range ${range}`;
+      if (def.splashRadius <= 0) return base;
+      const splash = Math.round((def.splashRadius / CELL) * 10) / 10;
+      return `${base} · splash ${splash} @${Math.round(SPLASH_DAMAGE_FRACTION * 100)}%`;
     }
     case 'farm':
       return `+$${def.incomePerWave}/wave`;

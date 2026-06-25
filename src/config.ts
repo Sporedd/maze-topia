@@ -10,6 +10,8 @@ export const EARLY_BONUS_PER_SECOND = 5;
 export const WAVE_CLEAR_BONUS = 50;
 /** Added enemy-HP (and spawn-count) multiplier per standing economy building. */
 export const ECONOMY_THREAT_PER_BUILDING = 0.2;
+/** Fraction of a splash projectile's damage dealt to non-primary targets. */
+export const SPLASH_DAMAGE_FRACTION = 0.5;
 /** Selectable simulation speeds (1× = real time); each runs N substeps/frame. */
 export const GAME_SPEEDS = [1, 2, 3, 5, 7, 10] as const;
 
@@ -42,6 +44,7 @@ export interface TowerDef {
   fireRate: number; // shots per second
   damage: number;
   projectileSpeed: number; // px per second
+  splashRadius: number; // attack: damage radius around the impact (0 = single-target)
   // Economy (0 for attack towers).
   incomePerWave: number; // farm: money paid at the start of each wave
   interest: number; // bank: fraction of current money paid each wave
@@ -60,6 +63,7 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 3,
     damage: 6,
     projectileSpeed: 8 * CELL,
+    splashRadius: 0,
     incomePerWave: 0,
     interest: 0,
     farmBoost: 0,
@@ -75,6 +79,23 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0.8,
     damage: 40,
     projectileSpeed: 6 * CELL,
+    splashRadius: 0,
+    incomePerWave: 0,
+    interest: 0,
+    farmBoost: 0,
+    damageBoost: 0,
+  },
+  {
+    id: 'mortar',
+    name: 'Mortar',
+    kind: 'attack',
+    cost: 160,
+    color: 0xf0883e,
+    range: 3.5 * CELL,
+    fireRate: 0.6,
+    damage: 22,
+    projectileSpeed: 5 * CELL,
+    splashRadius: 1.4 * CELL, // hits everything bunched on the path
     incomePerWave: 0,
     interest: 0,
     farmBoost: 0,
@@ -90,6 +111,7 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0,
     damage: 0,
     projectileSpeed: 0,
+    splashRadius: 0,
     incomePerWave: 30,
     interest: 0,
     farmBoost: 0,
@@ -105,6 +127,7 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0,
     damage: 0,
     projectileSpeed: 0,
+    splashRadius: 0,
     incomePerWave: 0,
     interest: 0.12,
     farmBoost: 0,
@@ -120,6 +143,7 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0,
     damage: 0,
     projectileSpeed: 0,
+    splashRadius: 0,
     incomePerWave: 0,
     interest: 0,
     farmBoost: 0.5, // +50% income to each farm in range
@@ -135,6 +159,7 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0,
     damage: 0,
     projectileSpeed: 0,
+    splashRadius: 0,
     incomePerWave: 0,
     interest: 0,
     farmBoost: 0,

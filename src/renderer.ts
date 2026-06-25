@@ -70,7 +70,13 @@ export class Renderer {
       g.rect(bx, by, w * frac, 3).fill(COLORS.enemyHp);
     }
     for (const p of projectiles) {
-      g.circle(p.x, p.y, 3).fill(COLORS.projectile);
+      if (p.shape === 'rect') {
+        const s = 4;
+        g.rect(p.x - s / 2, p.y - s / 2, s, s).fill(COLORS.projectile);
+      } else {
+        // Splash shells are drawn fatter so the heavier round reads at a glance.
+        g.circle(p.x, p.y, p.splashRadius > 0 ? 5 : 3).fill(COLORS.projectile);
+      }
     }
   }
 

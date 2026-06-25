@@ -29,13 +29,14 @@ next level, replay, or return to the menu.
 
 ## How it plays
 
-- Towers are split into three panels: **Attack** (selected with `1`–`2`),
+- Towers are split into three panels: **Attack** (selected with `1`–`3`),
   **Economy** (gold-coded, `Shift`+`1`–`Shift`+`3`) and **Boost** (coral-coded,
   `Alt`+`1`). Click a tower button or press its key; `Esc` deselects.
 - **Click** the grid to build one tower, or **click-and-drag** to mass-build along
   the cursor path.
 - **Right-click** a tower to sell it (70% refund).
-- Tower types: **Gun** and **Cannon** attack; **Farm** pays out a fixed sum at the
+- Tower types: **Gun**, **Cannon** and **Mortar** attack (the Mortar deals splash
+  damage to every enemy near its impact); **Farm** pays out a fixed sum at the
   start of each wave; **Mill** boosts the income of farms in the 8 surrounding
   cells; **Bank** pays interest on your current money at the start of each wave;
   **Amplifier** boosts the damage of attack towers in range (bonuses stack).

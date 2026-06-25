@@ -194,7 +194,7 @@ export class Game {
       if (p) this.projectiles.push(p);
     }
 
-    for (const p of this.projectiles) p.update(dt);
+    for (const p of this.projectiles) p.update(dt, this.enemies);
 
     for (const e of this.enemies) {
       if (e.dead) this.money += e.reward;

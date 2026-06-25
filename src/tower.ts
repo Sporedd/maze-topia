@@ -44,7 +44,16 @@ export class Tower {
 
     this.cooldown = 1 / this.def.fireRate;
     const damage = this.def.damage * (1 + this.damageBoost);
-    return new Projectile(this.x, this.y, target, damage, this.def.projectileSpeed);
+    const shape = this.def.id === 'cannon' ? 'rect' : 'circle';
+    return new Projectile(
+      this.x,
+      this.y,
+      target,
+      damage,
+      this.def.projectileSpeed,
+      shape,
+      this.def.splashRadius,
+    );
   }
 
   /** First-in-range = the in-range enemy closest to the exit (lowest field dist). */
