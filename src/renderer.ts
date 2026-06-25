@@ -1,5 +1,5 @@
 import { Application, Container, Graphics } from 'pixi.js';
-import { CELL, COLS, ROWS, WIDTH, HEIGHT, COLORS } from './config.ts';
+import { CELL, COLORS } from './config.ts';
 import { Cell, type Grid } from './grid.ts';
 import type { Enemy } from './enemy.ts';
 import type { Tower } from './tower.ts';
@@ -14,8 +14,8 @@ export class Renderer {
 
   async init(mount: HTMLElement): Promise<void> {
     await this.app.init({
-      width: WIDTH,
-      height: HEIGHT,
+      width: CELL,
+      height: CELL,
       background: COLORS.bgEven,
       antialias: true,
     });
@@ -25,12 +25,17 @@ export class Renderer {
     this.app.stage.addChild(root);
   }
 
-  /** Redraw static board: checkerboard, spawn, exit, towers. */
+  /** Match the canvas to a level's grid dimensions. */
+  resize(cols: number, rows: number): void {
+    this.app.renderer.resize(cols * CELL, rows * CELL);
+  }
+
+  /** Redraw static board: checkerboard, spawn, exit, walls, towers. */
   drawBoard(grid: Grid, towers: Tower[]): void {
     const g = this.board;
     g.clear();
-    for (let y = 0; y < ROWS; y++) {
-      for (let x = 0; x < COLS; x++) {
+    for (let y = 0; y < grid.rows; y++) {
+      for (let x = 0; x < grid.cols; x++) {
         const color = (x + y) % 2 === 0 ? COLORS.bgEven : COLORS.bgOdd;
         g.rect(x * CELL, y * CELL, CELL, CELL).fill(color);
         const cell = grid.cells[y][x];
@@ -38,6 +43,8 @@ export class Renderer {
           g.rect(x * CELL + 2, y * CELL + 2, CELL - 4, CELL - 4).fill(COLORS.spawn);
         } else if (cell === Cell.Exit) {
           g.rect(x * CELL + 2, y * CELL + 2, CELL - 4, CELL - 4).fill(COLORS.exit);
+        } else if (cell === Cell.Wall) {
+          g.rect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2).fill(COLORS.wall);
         }
       }
     }

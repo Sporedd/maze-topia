@@ -1,27 +1,23 @@
-export const COLS = 40;
-export const ROWS = 28;
 export const CELL = 30;
-export const WIDTH = COLS * CELL;
-export const HEIGHT = ROWS * CELL;
 
-export const SPAWN = { x: 0, y: Math.floor(ROWS / 2) };
-export const EXIT = { x: COLS - 1, y: Math.floor(ROWS / 2) };
-
-export const START_MONEY = 1000;
-export const START_LIVES = 25;
 /** Seconds of build time before the next wave auto-starts. */
 export const AUTO_START_DELAY = 10;
 /** Fraction of a tower's cost refunded when sold. */
 export const SELL_REFUND = 0.7;
 /** Bonus money per whole second skipped by starting a wave early. */
 export const EARLY_BONUS_PER_SECOND = 5;
-/** Added enemy-HP multiplier per 1000 money tied up in economy towers. */
-export const ECONOMY_THREAT_PER_1000 = 0.6;
+/** Gold awarded for clearing a wave, multiplied by the wave number. */
+export const WAVE_CLEAR_BONUS = 50;
+/** Added enemy-HP (and spawn-count) multiplier per standing economy building. */
+export const ECONOMY_THREAT_PER_BUILDING = 0.2;
+/** Selectable simulation speeds (1× = real time); each runs N substeps/frame. */
+export const GAME_SPEEDS = [1, 2, 3, 5, 7, 10] as const;
 
 export const COLORS = {
   bgEven: 0x121821,
   bgOdd: 0x161d28,
   grid: 0x1f2630,
+  wall: 0x2d333b,
   spawn: 0x3fb950,
   exit: 0xf85149,
   towerBody: 0x58a6ff,
@@ -33,7 +29,7 @@ export const COLORS = {
   rangeBad: 0xf85149,
 } as const;
 
-export type TowerKind = 'attack' | 'farm' | 'bank' | 'mill';
+export type TowerKind = 'attack' | 'farm' | 'bank' | 'mill' | 'amp';
 
 export interface TowerDef {
   id: string;
@@ -47,9 +43,10 @@ export interface TowerDef {
   damage: number;
   projectileSpeed: number; // px per second
   // Economy (0 for attack towers).
-  incomePerSecond: number; // farm: money generated each second
+  incomePerWave: number; // farm: money paid at the start of each wave
   interest: number; // bank: fraction of current money paid each wave
   farmBoost: number; // mill: income bonus added to each farm in range
+  damageBoost: number; // amp: damage bonus added to each attack tower in range
 }
 
 export const TOWER_DEFS: TowerDef[] = [
@@ -63,9 +60,10 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 3,
     damage: 6,
     projectileSpeed: 8 * CELL,
-    incomePerSecond: 0,
+    incomePerWave: 0,
     interest: 0,
     farmBoost: 0,
+    damageBoost: 0,
   },
   {
     id: 'cannon',
@@ -77,9 +75,10 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0.8,
     damage: 40,
     projectileSpeed: 6 * CELL,
-    incomePerSecond: 0,
+    incomePerWave: 0,
     interest: 0,
     farmBoost: 0,
+    damageBoost: 0,
   },
   {
     id: 'farm',
@@ -91,9 +90,10 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0,
     damage: 0,
     projectileSpeed: 0,
-    incomePerSecond: 5,
+    incomePerWave: 30,
     interest: 0,
     farmBoost: 0,
+    damageBoost: 0,
   },
   {
     id: 'bank',
@@ -105,9 +105,10 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0,
     damage: 0,
     projectileSpeed: 0,
-    incomePerSecond: 0,
+    incomePerWave: 0,
     interest: 0.12,
     farmBoost: 0,
+    damageBoost: 0,
   },
   {
     id: 'mill',
@@ -119,9 +120,25 @@ export const TOWER_DEFS: TowerDef[] = [
     fireRate: 0,
     damage: 0,
     projectileSpeed: 0,
-    incomePerSecond: 0,
+    incomePerWave: 0,
     interest: 0,
     farmBoost: 0.5, // +50% income to each farm in range
+    damageBoost: 0,
+  },
+  {
+    id: 'amp',
+    name: 'Amplifier',
+    kind: 'amp',
+    cost: 175,
+    color: 0xff7b72,
+    range: 2.5 * CELL,
+    fireRate: 0,
+    damage: 0,
+    projectileSpeed: 0,
+    incomePerWave: 0,
+    interest: 0,
+    farmBoost: 0,
+    damageBoost: 0.25, // +25% damage to each attack tower in range
   },
 ];
 
@@ -133,14 +150,112 @@ export interface WaveDef {
   reward: number; // money per kill
 }
 
-export const WAVES: WaveDef[] = [
-  { count: 16, hp: 30, speed: 1.6 * CELL, interval: 0.7, reward: 10 },
-  { count: 22, hp: 45, speed: 1.7 * CELL, interval: 0.65, reward: 10 },
-  { count: 26, hp: 70, speed: 1.8 * CELL, interval: 0.6, reward: 11 },
-  { count: 30, hp: 110, speed: 1.9 * CELL, interval: 0.55, reward: 12 },
-  { count: 34, hp: 170, speed: 2.0 * CELL, interval: 0.5, reward: 13 },
-  { count: 38, hp: 260, speed: 2.2 * CELL, interval: 0.45, reward: 15 },
-  { count: 42, hp: 400, speed: 2.4 * CELL, interval: 0.4, reward: 16 },
-  { count: 48, hp: 600, speed: 2.5 * CELL, interval: 0.4, reward: 18 },
-  { count: 56, hp: 900, speed: 2.6 * CELL, interval: 0.35, reward: 20 },
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface LevelDef {
+  id: string;
+  name: string;
+  /** One-line flavour shown in the level-select menu. */
+  blurb: string;
+  cols: number;
+  rows: number;
+  spawn: Point;
+  exit: Point;
+  /** Cells permanently blocked: unbuildable and not walkable. */
+  walls: Point[];
+  startMoney: number;
+  startLives: number;
+  waves: WaveDef[];
+}
+
+/** Inclusive rectangle of cells, handy for sketching walls. */
+function rect(x0: number, y0: number, x1: number, y1: number): Point[] {
+  const cells: Point[] = [];
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) cells.push({ x, y });
+  }
+  return cells;
+}
+
+/** The progression. Index order is the unlock order. */
+export const LEVELS: LevelDef[] = [
+  {
+    id: 'open-field',
+    name: 'Open Field',
+    blurb: 'Wide open ground — your towers are the only walls.',
+    cols: 40,
+    rows: 28,
+    spawn: { x: 0, y: 14 },
+    exit: { x: 39, y: 14 },
+    walls: [],
+    startMoney: 1000,
+    startLives: 25,
+    waves: [
+      { count: 16, hp: 30, speed: 1.6 * CELL, interval: 0.7, reward: 10 },
+      { count: 22, hp: 45, speed: 1.7 * CELL, interval: 0.65, reward: 10 },
+      { count: 26, hp: 70, speed: 1.8 * CELL, interval: 0.6, reward: 11 },
+      { count: 30, hp: 110, speed: 1.9 * CELL, interval: 0.55, reward: 12 },
+      { count: 34, hp: 170, speed: 2.0 * CELL, interval: 0.5, reward: 13 },
+      { count: 38, hp: 260, speed: 2.2 * CELL, interval: 0.45, reward: 15 },
+      { count: 42, hp: 400, speed: 2.4 * CELL, interval: 0.4, reward: 16 },
+      { count: 48, hp: 600, speed: 2.5 * CELL, interval: 0.4, reward: 18 },
+      { count: 56, hp: 900, speed: 2.6 * CELL, interval: 0.35, reward: 20 },
+    ],
+  },
+  {
+    id: 'the-pillars',
+    name: 'The Pillars',
+    blurb: 'Stone pillars you must weave around. Less cash to start.',
+    cols: 34,
+    rows: 24,
+    spawn: { x: 0, y: 2 },
+    exit: { x: 33, y: 21 },
+    walls: [
+      ...rect(8, 6, 9, 17),
+      ...rect(16, 6, 17, 17),
+      ...rect(24, 6, 25, 17),
+    ],
+    startMoney: 750,
+    startLives: 20,
+    waves: [
+      { count: 18, hp: 40, speed: 1.7 * CELL, interval: 0.65, reward: 10 },
+      { count: 24, hp: 70, speed: 1.8 * CELL, interval: 0.6, reward: 11 },
+      { count: 28, hp: 120, speed: 1.9 * CELL, interval: 0.55, reward: 12 },
+      { count: 32, hp: 190, speed: 2.0 * CELL, interval: 0.5, reward: 13 },
+      { count: 36, hp: 300, speed: 2.2 * CELL, interval: 0.45, reward: 15 },
+      { count: 40, hp: 460, speed: 2.4 * CELL, interval: 0.4, reward: 17 },
+      { count: 46, hp: 700, speed: 2.5 * CELL, interval: 0.4, reward: 19 },
+      { count: 54, hp: 1050, speed: 2.7 * CELL, interval: 0.35, reward: 22 },
+    ],
+  },
+  {
+    id: 'the-funnel',
+    name: 'The Funnel',
+    blurb: 'A narrow gap halfway across forces every enemy through one chokepoint.',
+    cols: 44,
+    rows: 30,
+    spawn: { x: 0, y: 15 },
+    exit: { x: 43, y: 15 },
+    walls: [
+      // A wall straight down the middle with a single 4-cell gap.
+      ...rect(22, 0, 22, 12),
+      ...rect(22, 17, 22, 29),
+    ],
+    startMoney: 900,
+    startLives: 22,
+    waves: [
+      { count: 20, hp: 50, speed: 1.8 * CELL, interval: 0.6, reward: 10 },
+      { count: 26, hp: 90, speed: 1.9 * CELL, interval: 0.55, reward: 11 },
+      { count: 30, hp: 150, speed: 2.0 * CELL, interval: 0.5, reward: 13 },
+      { count: 34, hp: 240, speed: 2.2 * CELL, interval: 0.45, reward: 14 },
+      { count: 38, hp: 380, speed: 2.4 * CELL, interval: 0.4, reward: 16 },
+      { count: 44, hp: 580, speed: 2.5 * CELL, interval: 0.4, reward: 18 },
+      { count: 50, hp: 880, speed: 2.7 * CELL, interval: 0.35, reward: 21 },
+      { count: 58, hp: 1300, speed: 2.8 * CELL, interval: 0.3, reward: 24 },
+      { count: 66, hp: 1900, speed: 3.0 * CELL, interval: 0.3, reward: 28 },
+    ],
+  },
 ];

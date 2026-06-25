@@ -1,13 +1,14 @@
 import {
   CELL,
-  START_MONEY,
-  START_LIVES,
   AUTO_START_DELAY,
   SELL_REFUND,
   EARLY_BONUS_PER_SECOND,
-  ECONOMY_THREAT_PER_1000,
+  WAVE_CLEAR_BONUS,
+  ECONOMY_THREAT_PER_BUILDING,
   TOWER_DEFS,
+  type LevelDef,
   type TowerDef,
+  type TowerKind,
 } from './config.ts';
 import { Grid } from './grid.ts';
 import { Enemy } from './enemy.ts';
@@ -18,14 +19,14 @@ import { WaveManager } from './waves.ts';
 export type GameStatus = 'playing' | 'won' | 'lost';
 
 export class Game {
-  readonly grid = new Grid();
-  readonly waves = new WaveManager();
+  readonly grid: Grid;
+  readonly waves: WaveManager;
   enemies: Enemy[] = [];
   towers: Tower[] = [];
   projectiles: Projectile[] = [];
 
-  money = START_MONEY;
-  lives = START_LIVES;
+  money: number;
+  lives: number;
   status: GameStatus = 'playing';
   selected: TowerDef | null = null;
   /** Bumped whenever the static board changes, so the renderer can redraw. */
@@ -34,12 +35,27 @@ export class Game {
   private nextWaveTimer = AUTO_START_DELAY;
   /** When true, the wave fires automatically once the window elapses. */
   autoStart = false;
+  /** Simulation speed multiplier; the loop runs this many fixed substeps/frame. */
+  speed = 1;
   /** Early-start bonus awarded for the wave currently running (0 if none). */
   lastEarlyBonus = 0;
   /** Bank interest paid at the start of the current wave (0 if none). */
   lastBankInterest = 0;
+  /** Farm income paid at the start of the current wave (0 if none). */
+  lastFarmIncome = 0;
+  /** Gold paid for the most recently cleared wave (0 before any clear). */
+  lastWaveBonus = 0;
+  /** Highest wave index already paid a clear bonus, so we award it once. */
+  private bonusPaidForWave = -1;
   /** Enemy-HP multiplier locked in for the wave currently running. */
   currentThreat = 1;
+
+  constructor(readonly level: LevelDef) {
+    this.grid = new Grid(level);
+    this.waves = new WaveManager(level.waves, level.spawn);
+    this.money = level.startMoney;
+    this.lives = level.startLives;
+  }
 
   selectTower(id: string | null): void {
     this.selected = id ? (TOWER_DEFS.find((t) => t.id === id) ?? null) : null;
@@ -68,6 +84,7 @@ export class Game {
     this.grid.place(x, y);
     this.towers.push(new Tower(x, y, this.selected));
     this.money -= this.selected.cost;
+    this.recomputeDamageBoosts();
     this.boardDirty = true;
     return true;
   }
@@ -86,6 +103,7 @@ export class Game {
     this.towers.splice(i, 1);
     this.grid.remove(x, y);
     this.money += Math.floor(tower.def.cost * SELL_REFUND);
+    this.recomputeDamageBoosts();
     this.boardDirty = true;
     return true;
   }
@@ -93,21 +111,26 @@ export class Game {
   startWave(): boolean {
     if (this.status !== 'playing') return false;
     const earlyBonus = (this.nextWaveCountdown ?? 0) * EARLY_BONUS_PER_SECOND;
-    const started = this.waves.startNext();
+    // Lock the wealth-scaled threat in before spawning; it scales HP and count.
+    const threat = this.threatMultiplier;
+    const started = this.waves.startNext(threat);
     if (!started) return false;
+    this.currentThreat = threat;
 
     this.money += earlyBonus;
     this.lastEarlyBonus = earlyBonus;
 
-    // Banks pay interest on the money on hand at wave start.
+    // Banks pay interest on the money on hand; farms pay their wave income.
+    // Both are computed against the pre-wave total, so they don't compound.
     const base = this.money;
-    let interest = 0;
-    for (const t of this.towers) interest += t.collectInterest(base);
-    this.money += interest;
+    const interest = this.towers.reduce((sum, t) => sum + t.collectInterest(base), 0);
+    const farmIncome = this.towers.reduce(
+      (sum, t) => sum + t.collectIncome(this.farmMultiplier(t)),
+      0,
+    );
+    this.money += interest + farmIncome;
     this.lastBankInterest = interest;
-
-    // Lock the wealth-scaled threat for this wave.
-    this.currentThreat = this.threatMultiplier;
+    this.lastFarmIncome = farmIncome;
 
     this.nextWaveTimer = AUTO_START_DELAY;
     return true;
@@ -134,16 +157,22 @@ export class Game {
     return (this.nextWaveCountdown ?? 0) * EARLY_BONUS_PER_SECOND;
   }
 
-  /** Money currently tied up in standing economy towers. */
-  get economyInvestment(): number {
+  /** Total money all farms pay at the start of a wave (incl. mill boosts). */
+  get farmIncomePerWave(): number {
     return this.towers
-      .filter((t) => t.def.kind !== 'attack')
-      .reduce((sum, t) => sum + t.def.cost, 0);
+      .filter((t) => t.def.kind === 'farm')
+      .reduce((sum, t) => sum + t.def.incomePerWave * this.farmMultiplier(t), 0);
   }
 
-  /** Enemy-HP multiplier the next wave would use given current investment. */
+  /** Number of standing economy buildings (income towers, not combat). */
+  get economyBuildingCount(): number {
+    const economyKinds: TowerKind[] = ['farm', 'bank', 'mill'];
+    return this.towers.filter((t) => economyKinds.includes(t.def.kind)).length;
+  }
+
+  /** Enemy-HP multiplier the next wave would use given current economy count. */
   get threatMultiplier(): number {
-    return 1 + (this.economyInvestment / 1000) * ECONOMY_THREAT_PER_1000;
+    return 1 + this.economyBuildingCount * ECONOMY_THREAT_PER_BUILDING;
   }
 
   update(dt: number): void {
@@ -151,7 +180,7 @@ export class Game {
 
     this.updateAutoStart(dt);
 
-    for (const e of this.waves.update(dt, this.currentThreat)) this.enemies.push(e);
+    for (const e of this.waves.update(dt)) this.enemies.push(e);
 
     for (const e of this.enemies) {
       e.update(dt, this.grid);
@@ -160,11 +189,9 @@ export class Game {
       }
     }
 
-    const inCombat = this.waves.isActive || this.enemies.length > 0;
     for (const t of this.towers) {
       const p = t.update(dt, this.enemies, this.grid);
       if (p) this.projectiles.push(p);
-      if (inCombat) this.money += t.collectIncome(dt, this.farmMultiplier(t));
     }
 
     for (const p of this.projectiles) p.update(dt);
@@ -176,7 +203,36 @@ export class Game {
     this.enemies = this.enemies.filter((e) => !e.dead && !e.escaped);
     this.projectiles = this.projectiles.filter((p) => !p.dead);
 
+    this.awardWaveClearBonus();
     this.resolveEndState();
+  }
+
+  /** Pay a one-time gold bonus the moment a wave is fully cleared. */
+  private awardWaveClearBonus(): void {
+    const wave = this.waves.current;
+    if (wave < 0 || wave <= this.bonusPaidForWave) return;
+    if (this.waves.isActive || this.enemies.length > 0) return;
+    this.bonusPaidForWave = wave;
+    this.lastWaveBonus = WAVE_CLEAR_BONUS * this.waves.displayWave;
+    this.money += this.lastWaveBonus;
+  }
+
+  /**
+   * Refresh every attack tower's damage bonus from the amplifiers around it.
+   * Bonuses stack additively; recomputed only when the board changes.
+   */
+  private recomputeDamageBoosts(): void {
+    const amps = this.towers.filter((t) => t.def.kind === 'amp');
+    this.towers
+      .filter((t) => t.def.kind === 'attack')
+      .forEach((tower) => {
+        tower.damageBoost = amps.reduce((boost, amp) => {
+          const dx = amp.x - tower.x;
+          const dy = amp.y - tower.y;
+          const inRange = dx * dx + dy * dy <= amp.def.range * amp.def.range;
+          return inRange ? boost + amp.def.damageBoost : boost;
+        }, 0);
+      });
   }
 
   /** Income multiplier for a farm from all mills within range. */

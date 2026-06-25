@@ -18,7 +18,7 @@
       }
       #app { display: flex; gap: 16px; align-items: flex-start; }
       #game { border: 1px solid #30363d; border-radius: 6px; overflow: hidden; line-height: 0; }
-      #panel { width: 220px; display: flex; flex-direction: column; gap: 12px; }
+      #panel { width: 300px; display: flex; flex-direction: column; gap: 12px; }
       .stats { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
       .stats b { color: #58a6ff; }
       .towers { display: flex; flex-direction: column; gap: 8px; }
@@ -36,6 +36,17 @@
       .tower-btn:hover { border-color: #58a6ff; }
       .tower-btn.selected { border-color: #58a6ff; background: #1f2937; }
       .tower-btn small { display: block; color: #8b949e; margin-top: 2px; }
+      .tower-btn.eco { border-color: #8a6d1f; }
+      .tower-btn.eco:hover { border-color: #ffd33d; }
+      .tower-btn.eco.selected { border-color: #ffd33d; background: #2a2310; }
+      .tower-btn.eco kbd { border-color: #8a6d1f; color: #ffd33d; }
+      .tower-btn.boost { border-color: #8a3d39; }
+      .tower-btn.boost:hover { border-color: #ff7b72; }
+      .tower-btn.boost.selected { border-color: #ff7b72; background: #2a1513; }
+      .tower-btn.boost kbd { border-color: #8a3d39; color: #ff7b72; }
+      .bar-label {
+        font-size: 11px; color: #6e7681; text-transform: uppercase; letter-spacing: 0.5px;
+      }
       kbd {
         display: inline-block; min-width: 14px; text-align: center;
         background: #0d1117; border: 1px solid #30363d; border-radius: 4px;
@@ -48,6 +59,13 @@
       .primary:disabled { opacity: 0.4; cursor: not-allowed; }
       .toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
       .toggle input { cursor: pointer; }
+      .speed { display: flex; gap: 4px; }
+      .speed-btn {
+        flex: 1; background: #161b22; border: 1px solid #30363d; color: #8b949e;
+        padding: 6px 0; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px;
+      }
+      .speed-btn:hover { border-color: #58a6ff; }
+      .speed-btn.selected { border-color: #58a6ff; background: #1f2937; color: #e6edf3; }
       #message {
         font-size: 13px; color: #8b949e; min-height: 18px;
       }
@@ -57,8 +75,46 @@
         background: rgba(0,0,0,0.7); flex-direction: column; gap: 16px;
       }
       #overlay h1 { margin: 0; }
-      #overlay button { font: inherit; padding: 10px 20px; cursor: pointer; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #e6edf3; }
+      .overlay-actions { display: flex; gap: 10px; }
+      #overlay button, #levels button:not(.level-card) {
+        font: inherit; padding: 10px 20px; cursor: pointer; border-radius: 6px;
+        border: 1px solid #30363d; background: #161b22; color: #e6edf3;
+      }
+      #overlay #next-level { background: #238636; border-color: #2ea043; color: #fff; font-weight: bold; }
       .hint { font-size: 12px; color: #6e7681; }
+      ul.hint { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; }
+      ul.hint li { line-height: 1.4; }
+      #context-menu {
+        position: fixed; display: none; z-index: 10; min-width: 150px;
+        background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+        padding: 4px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+      }
+      .ctx-item {
+        display: block; width: 100%; text-align: left; font: inherit; font-size: 13px;
+        background: none; border: none; color: #e6edf3; padding: 8px 10px;
+        border-radius: 4px; cursor: pointer;
+      }
+      .ctx-item:hover { background: #1f2937; color: #f85149; }
+      #levels {
+        position: fixed; inset: 0; display: none;
+        align-items: center; justify-content: center;
+        background: #0d1117; flex-direction: column; gap: 12px; padding: 24px;
+      }
+      #levels h1 { margin: 0; }
+      #level-list {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
+        gap: 14px; margin-top: 8px; max-width: 920px;
+      }
+      .level-card {
+        display: flex; flex-direction: column; gap: 6px; text-align: left;
+        background: #161b22; border: 1px solid #30363d; color: #e6edf3;
+        padding: 14px 16px; border-radius: 8px; cursor: pointer; font: inherit;
+      }
+      .level-card:hover:not(:disabled) { border-color: #58a6ff; background: #1f2937; }
+      .level-card:disabled { opacity: 0.45; cursor: not-allowed; }
+      .level-card b { color: #58a6ff; font-size: 15px; }
+      .level-card .badge { font-size: 12px; color: #3fb950; }
+      .level-card small { color: #8b949e; font-size: 12px; }
     </style>
   </head>
   <body>
@@ -66,28 +122,57 @@
       <div id="game"></div>
       <div id="panel">
         <div class="stats">
+          <div>Level: <b id="level-name">—</b></div>
           <div>Money: <b id="money">0</b></div>
+          <div title="Money your farms pay out at the start of each wave">
+            Income: <b id="income">0</b>/wave
+          </div>
           <div>Lives: <b id="lives">0</b></div>
           <div>Wave: <b id="wave">0</b></div>
-          <div title="Enemy HP scales with money tied up in economy towers">
+          <div title="Enemy HP and count scale with money tied up in economy towers">
             Threat: <b id="threat">×1.0</b>
           </div>
         </div>
+        <div class="bar-label">Attack</div>
         <div class="towers" id="towers"></div>
+        <div class="bar-label">Economy</div>
+        <div class="towers" id="eco-towers"></div>
+        <div class="bar-label">Boost</div>
+        <div class="towers" id="boost-towers"></div>
         <button class="primary" id="start">Start Wave</button>
+        <div class="speed" id="speed" title="Fast-forward the simulation"></div>
         <label class="toggle"><input type="checkbox" id="auto" /> Auto-start waves</label>
         <div id="message"></div>
-        <div class="hint">
-          Pick a tower (or press <kbd>1</kbd>–<kbd>5</kbd>), then click or drag on the
-          grid to build. <kbd>Esc</kbd> deselects. Right-click a tower to sell it (70%
-          refund). Farms make money each second; Mills boost nearby farms; Banks pay
-          interest each wave. Start a wave early for a cash bonus.
-        </div>
+        <ul class="hint">
+          <li>Pick an attack tower (<kbd>1</kbd>–<kbd>2</kbd>), economy tower (<kbd>⇧1</kbd>–<kbd>⇧3</kbd>) or boost tower (<kbd>⌥1</kbd>), then click or drag on the grid to build.</li>
+          <li><kbd>Esc</kbd> deselects.</li>
+          <li>Right-click a tower for a sell menu (70% refund).</li>
+          <li>Farms pay out at the start of each wave; Mills boost nearby farms.</li>
+          <li>Banks pay interest each wave.</li>
+          <li>Start a wave early for a cash bonus; clear a wave for a gold bonus that grows with the wave number.</li>
+          <li>
+            <b>Threat:</b> economy towers (Farm/Bank/Mill) raise the Threat meter —
+            every $1000 invested gives enemies more HP <em>and</em> spawns more of
+            them. It locks in when a wave starts, so build firepower to keep up.
+          </li>
+        </ul>
       </div>
+    </div>
+    <div id="context-menu">
+      <button id="sell-option" class="ctx-item">Sell tower</button>
     </div>
     <div id="overlay">
       <h1 id="overlay-title"></h1>
-      <button id="restart">Play again</button>
+      <div class="overlay-actions">
+        <button id="next-level">Next level</button>
+        <button id="retry">Retry</button>
+        <button id="to-menu">Level select</button>
+      </div>
+    </div>
+    <div id="levels">
+      <h1>Maze Topia</h1>
+      <p class="hint">Pick a level — clear one to unlock the next. Progress is saved.</p>
+      <div id="level-list"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

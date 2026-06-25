@@ -9,9 +9,9 @@ export class Tower {
   readonly x: number;
   readonly y: number;
   readonly def: TowerDef;
+  /** Fractional damage bonus from amplifiers in range; recomputed on board change. */
+  damageBoost = 0;
   private cooldown = 0;
-  /** Fractional money carried between frames so payouts stay whole. */
-  private incomeAccrual = 0;
 
   constructor(cx: number, cy: number, def: TowerDef) {
     this.cx = cx;
@@ -21,13 +21,10 @@ export class Tower {
     this.def = def;
   }
 
-  /** Whole money produced by a farm this frame (0 for other towers). */
-  collectIncome(dt: number, multiplier: number): number {
-    if (this.def.incomePerSecond <= 0) return 0;
-    this.incomeAccrual += this.def.incomePerSecond * multiplier * dt;
-    const whole = Math.floor(this.incomeAccrual);
-    this.incomeAccrual -= whole;
-    return whole;
+  /** Money a farm pays at the start of a wave (0 for other towers). */
+  collectIncome(multiplier: number): number {
+    if (this.def.incomePerWave <= 0) return 0;
+    return Math.floor(this.def.incomePerWave * multiplier);
   }
 
   /** Bank payout for a wave start given current money (0 for other towers). */
@@ -46,7 +43,8 @@ export class Tower {
     if (!target) return null;
 
     this.cooldown = 1 / this.def.fireRate;
-    return new Projectile(this.x, this.y, target, this.def.damage, this.def.projectileSpeed);
+    const damage = this.def.damage * (1 + this.damageBoost);
+    return new Projectile(this.x, this.y, target, damage, this.def.projectileSpeed);
   }
 
   /** First-in-range = the in-range enemy closest to the exit (lowest field dist). */

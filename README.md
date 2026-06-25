@@ -19,26 +19,41 @@ npm run build    # typecheck + production build to dist/
 npm run preview  # serve the production build
 ```
 
+## Levels
+
+The game opens on a **level-select** screen. Each level is its own map — grid
+size, spawn/exit positions, pre-blocked **walls** to maze around, starting
+money/lives, and wave curve. Clear a level to unlock the next; cleared levels are
+remembered across reloads (`localStorage`). On a win you can jump straight to the
+next level, replay, or return to the menu.
+
 ## How it plays
 
-- Select a tower in the panel or press its number key (`1`, `2`); `Esc` deselects.
+- Towers are split into three panels: **Attack** (selected with `1`–`2`),
+  **Economy** (gold-coded, `Shift`+`1`–`Shift`+`3`) and **Boost** (coral-coded,
+  `Alt`+`1`). Click a tower button or press its key; `Esc` deselects.
 - **Click** the grid to build one tower, or **click-and-drag** to mass-build along
   the cursor path.
 - **Right-click** a tower to sell it (70% refund).
-- Tower types: **Gun** and **Cannon** attack; **Farm** generates money every
-  second (only while a wave is active); **Mill** boosts the income of farms in the
-  8 surrounding cells; **Bank** pays interest on your current money at the start of
-  each wave.
+- Tower types: **Gun** and **Cannon** attack; **Farm** pays out a fixed sum at the
+  start of each wave; **Mill** boosts the income of farms in the 8 surrounding
+  cells; **Bank** pays interest on your current money at the start of each wave;
+  **Amplifier** boosts the damage of attack towers in range (bonuses stack).
 - Towers reshape the enemy path. Placements that would trap enemies or seal the
   exit are rejected (the hover cell turns red).
 - Click **Start Wave** to send the next wave. Starting early (within the build
   window) pays a cash bonus per second skipped. Enable **Auto-start waves** (off
   by default) to fire each wave automatically when the window elapses.
+- Use the **speed** buttons (`1×`–`10×`) to fast-forward the simulation; higher
+  speeds run extra fixed substeps per frame rather than scaling the timestep, so
+  pathing and projectile homing stay stable.
 - Kills earn money; leaks cost lives. Survive all waves to win.
-- **Threat scaling:** enemy HP rises with the money tied up in your economy
-  towers (`+60%` HP per `$1000` invested by default). The **Threat** meter shows
-  the multiplier; it locks in when a wave starts. Selling economy lowers it — but
-  costs you the income, so dodging by spend-down is self-defeating.
+- Clearing a wave pays a **gold bonus** that scales with the wave number.
+- **Threat scaling:** enemy HP **and spawn count** rise with the number of
+  economy buildings you have standing (`+20%` per economy building by default).
+  The **Threat** meter shows the multiplier; it locks in when a wave starts.
+  Selling economy lowers it — but costs you the income, so dodging by
+  tearing-down is self-defeating.
 
 ## Architecture
 
@@ -46,12 +61,13 @@ Logic is decoupled from rendering — the core would run headless.
 
 | File | Responsibility |
 |------|----------------|
-| `src/grid.ts` | Cell state + **distance field** (BFS from the exit) + placement validation |
+| `src/grid.ts` | Cell state (incl. pre-blocked walls) + **distance field** (BFS from the exit) + placement validation |
 | `src/enemy.ts` | Position, hp, follows the distance-field gradient downhill |
 | `src/tower.ts` | Range, fire rate, targeting (first-in-range), fires projectiles |
 | `src/projectile.ts` | Homes onto its target, applies damage |
 | `src/waves.ts` | Timed spawning per wave |
-| `src/game.ts` | Orchestrates state, economy, win/lose |
+| `src/game.ts` | Orchestrates state, economy, win/lose (built from a `LevelDef`) |
+| `src/progress.ts` | Cleared-level tracking + unlock rules, persisted to `localStorage` |
 | `src/renderer.ts` | PixiJS drawing (board, enemies, projectiles, range preview) |
 | `src/ui.ts` | HTML panel/overlay wiring |
 | `src/main.ts` | Boot, game loop, pointer input |
@@ -72,5 +88,7 @@ any cell currently occupied by a live enemy.
 
 ## Tuning
 
-Everything balance-related lives in `src/config.ts`: grid dimensions, starting
-money/lives, the `TOWER_DEFS` list, and the `WAVES` list.
+Everything balance-related lives in `src/config.ts`: the shared `TOWER_DEFS`
+list and the `LEVELS` array. Each `LevelDef` carries its own grid dimensions,
+spawn/exit, `walls`, starting money/lives, and per-level `waves`. Add a level by
+appending to `LEVELS` (its index is its unlock order).

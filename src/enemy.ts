@@ -1,4 +1,4 @@
-import { CELL, SPAWN, EXIT } from './config.ts';
+import { CELL, type Point } from './config.ts';
 import type { Grid } from './grid.ts';
 
 export class Enemy {
@@ -13,9 +13,9 @@ export class Enemy {
   /** Set when hp drops to zero. */
   dead = false;
 
-  constructor(hp: number, speed: number, reward: number) {
-    this.x = SPAWN.x * CELL + CELL / 2;
-    this.y = SPAWN.y * CELL + CELL / 2;
+  constructor(spawn: Point, hp: number, speed: number, reward: number) {
+    this.x = spawn.x * CELL + CELL / 2;
+    this.y = spawn.y * CELL + CELL / 2;
     this.hp = hp;
     this.maxHp = hp;
     this.speed = speed;
@@ -35,7 +35,7 @@ export class Enemy {
     const cx = Math.floor(this.x / CELL);
     const cy = Math.floor(this.y / CELL);
 
-    if (cx === EXIT.x && cy === EXIT.y) {
+    if (grid.atExit(cx, cy)) {
       this.escaped = true;
       return;
     }
