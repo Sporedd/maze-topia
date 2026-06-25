@@ -164,9 +164,12 @@ export class Game {
       .reduce((sum, t) => sum + t.def.incomePerWave * this.farmMultiplier(t), 0);
   }
 
-  /** Number of standing economy buildings (income towers, not combat). */
+  /**
+   * Number of standing economy buildings that drive threat scaling (income
+   * towers, not combat). Banks are excluded — they don't raise threat.
+   */
   get economyBuildingCount(): number {
-    const economyKinds: TowerKind[] = ['farm', 'bank', 'mill'];
+    const economyKinds: TowerKind[] = ['farm', 'mill'];
     return this.towers.filter((t) => economyKinds.includes(t.def.kind)).length;
   }
 

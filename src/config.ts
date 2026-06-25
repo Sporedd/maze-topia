@@ -8,7 +8,10 @@ export const SELL_REFUND = 0.7;
 export const EARLY_BONUS_PER_SECOND = 5;
 /** Gold awarded for clearing a wave, multiplied by the wave number. */
 export const WAVE_CLEAR_BONUS = 50;
-/** Added enemy-HP (and spawn-count) multiplier per standing economy building. */
+/**
+ * Added enemy-HP (and spawn-count) multiplier per standing threat-driving
+ * economy building (Farms and Mills; Banks are exempt).
+ */
 export const ECONOMY_THREAT_PER_BUILDING = 0.2;
 /** Fraction of a splash projectile's damage dealt to non-primary targets. */
 export const SPLASH_DAMAGE_FRACTION = 0.5;

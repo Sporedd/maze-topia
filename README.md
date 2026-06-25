@@ -51,8 +51,9 @@ next level, replay, or return to the menu.
 - Kills earn money; leaks cost lives. Survive all waves to win.
 - Clearing a wave pays a **gold bonus** that scales with the wave number.
 - **Threat scaling:** enemy HP **and spawn count** rise with the number of
-  economy buildings you have standing (`+20%` per economy building by default).
-  The **Threat** meter shows the multiplier; it locks in when a wave starts.
+  threat-driving economy buildings you have standing — **Farms** and **Mills**
+  (`+20%` each by default). **Banks are exempt** and never raise threat. The
+  **Threat** meter shows the multiplier; it locks in when a wave starts.
   Selling economy lowers it — but costs you the income, so dodging by
   tearing-down is self-defeating.
 

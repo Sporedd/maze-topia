@@ -17,6 +17,7 @@
         padding: 16px;
       }
       #app { display: flex; gap: 16px; align-items: flex-start; }
+      #game-column { display: flex; flex-direction: column; gap: 12px; }
       #game { border: 1px solid #30363d; border-radius: 6px; overflow: hidden; line-height: 0; }
       #panel { width: 300px; display: flex; flex-direction: column; gap: 12px; }
       .stats { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
@@ -119,7 +120,18 @@
   </head>
   <body>
     <div id="app">
-      <div id="game"></div>
+      <div id="game-column">
+        <div id="game"></div>
+        <ul class="hint">
+          <li>Pick an attack tower (<kbd>1</kbd>–<kbd>2</kbd>), economy tower (<kbd>⇧1</kbd>–<kbd>⇧3</kbd>) or boost tower (<kbd>⌥1</kbd>), then click or drag on the grid to build.</li>
+          <li><kbd>Esc</kbd> deselects.</li>
+          <li>Right-click a tower for a sell menu (70% refund).</li>
+          <li>Farms pay out at the start of each wave; Mills boost nearby farms.</li>
+          <li>Banks pay interest each wave.</li>
+          <li>Start a wave early for a cash bonus; clear a wave for a gold bonus that grows with the wave number.</li>
+          <li><b>Threat:</b> food buildings (Farm/Mill) attract more and stronger enemies!</li>
+        </ul>
+      </div>
       <div id="panel">
         <div class="stats">
           <div>Level: <b id="level-name">—</b></div>
@@ -129,7 +141,7 @@
           </div>
           <div>Lives: <b id="lives">0</b></div>
           <div>Wave: <b id="wave">0</b></div>
-          <div title="Enemy HP and count scale with money tied up in economy towers">
+          <div title="Food buildings (Farm/Mill) attract more and stronger enemies">
             Threat: <b id="threat">×1.0</b>
           </div>
         </div>
@@ -143,19 +155,6 @@
         <div class="speed" id="speed" title="Fast-forward the simulation"></div>
         <label class="toggle"><input type="checkbox" id="auto" /> Auto-start waves</label>
         <div id="message"></div>
-        <ul class="hint">
-          <li>Pick an attack tower (<kbd>1</kbd>–<kbd>2</kbd>), economy tower (<kbd>⇧1</kbd>–<kbd>⇧3</kbd>) or boost tower (<kbd>⌥1</kbd>), then click or drag on the grid to build.</li>
-          <li><kbd>Esc</kbd> deselects.</li>
-          <li>Right-click a tower for a sell menu (70% refund).</li>
-          <li>Farms pay out at the start of each wave; Mills boost nearby farms.</li>
-          <li>Banks pay interest each wave.</li>
-          <li>Start a wave early for a cash bonus; clear a wave for a gold bonus that grows with the wave number.</li>
-          <li>
-            <b>Threat:</b> economy towers (Farm/Bank/Mill) raise the Threat meter —
-            every $1000 invested gives enemies more HP <em>and</em> spawns more of
-            them. It locks in when a wave starts, so build firepower to keep up.
-          </li>
-        </ul>
       </div>
     </div>
     <div id="context-menu">
