@@ -43,11 +43,11 @@ function describeTower(def: TowerDef): string {
     case 'farm':
       return `+$${def.incomePerWave}/wave`;
     case 'bank':
-      return `+${Math.round(def.interest * 100)}% money/wave`;
+      return `+${Math.round(def.interest * 100)}% gold/wave`;
     case 'mill':
-      return `+${Math.round(def.farmBoost * 100)}% to nearby farms`;
+      return `+${Math.round(def.farmBoost * 100)}% to nearby Gold Veins`;
     case 'amp':
-      return `+${Math.round(def.damageBoost * 100)}% dmg to nearby towers`;
+      return `+${Math.round(def.damageBoost * 100)}% dmg to nearby guardians`;
   }
 }
 
@@ -149,7 +149,7 @@ export class UI {
       return;
     }
     this.contextCell = cell;
-    this.sellOption.textContent = `Sell tower (+$${value})`;
+    this.sellOption.textContent = `Tear down (+$${value})`;
     const targeting = this.getGame()?.targetingAt(cell.x, cell.y) ?? null;
     this.targetingRow.style.display = targeting ? 'flex' : 'none';
     if (targeting) this.targetingSelect.value = targeting;
@@ -255,16 +255,16 @@ export class UI {
   }
 
   private activeMessage(g: Game): string {
-    const parts = [g.waves.currentIsBoss ? '⚠ BOSS WAVE in progress…' : 'Wave in progress…'];
+    const parts = [g.waves.currentIsBoss ? '⚠ CHAMPION in progress…' : 'Raid in progress…'];
     if (g.lastEarlyBonus > 0) parts.push(`early +$${g.lastEarlyBonus}`);
-    if (g.lastFarmIncome > 0) parts.push(`farms +$${g.lastFarmIncome}`);
-    if (g.lastBankInterest > 0) parts.push(`bank +$${g.lastBankInterest}`);
+    if (g.lastFarmIncome > 0) parts.push(`veins +$${g.lastFarmIncome}`);
+    if (g.lastBankInterest > 0) parts.push(`vault +$${g.lastBankInterest}`);
     return parts.join(' · ');
   }
 
   private idleMessage(g: Game, countdown: number | null): string {
     const parts: string[] = [];
-    if (g.waves.nextIsBoss) parts.push('⚠ BOSS WAVE next');
+    if (g.waves.nextIsBoss) parts.push('⚠ CHAMPION next');
     if (g.lastWaveBonus > 0) parts.push(`Wave cleared: +$${g.lastWaveBonus}`);
     if (g.pendingEarlyBonus > 0) parts.push(`Start now: +$${g.pendingEarlyBonus} bonus`);
     if (g.autoStart && countdown !== null) parts.push(`auto in ${countdown}s`);
@@ -282,7 +282,7 @@ export class UI {
     this.threat.textContent = `×${threat.toFixed(2)}${g.waves.isActive ? '' : ' (next)'}`;
     this.startBtn.disabled = !g.canStartWave;
     this.nukeBtn.disabled = !g.canNuke;
-    this.nukeBtn.textContent = g.nukeUsed ? '☢ Nuke (spent)' : '☢ Nuke (1)';
+    this.nukeBtn.textContent = g.nukeUsed ? '🔥 Breath (spent)' : '🔥 Breath (1)';
 
     for (const [id, btn] of this.buttons) {
       const def = TOWER_DEFS.find((t) => t.id === id)!;
@@ -305,11 +305,11 @@ export class UI {
         ? this.activeMessage(g)
         : this.idleMessage(g, countdown);
       this.startBtn.textContent =
-        g.autoStart && countdown !== null ? `Start Wave (auto ${countdown}s)` : 'Start Wave';
+        g.autoStart && countdown !== null ? `Send Raid (auto ${countdown}s)` : 'Send Raid';
       this.overlay.style.display = 'none';
     } else {
       const won = g.status === 'won';
-      this.overlayTitle.textContent = won ? 'Level cleared! 🎉' : 'Game over 💀';
+      this.overlayTitle.textContent = won ? 'Lair held! 🐲' : 'Hoard plundered 💀';
       if (won) {
         const stars = starsForResult(g.lives, g.level.startLives);
         const best = this.progress.bestStars(g.level.id);

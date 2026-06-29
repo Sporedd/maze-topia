@@ -1,8 +1,21 @@
-# Maze Topia
+# The Hoard
 
-A browser tower-defence game with **true mazing**: you place towers anywhere on
-open ground to sculpt the path enemies must walk. The game prevents you from
+A browser tower-defence game with **true mazing**: you place guardians anywhere
+on open ground to sculpt the path raiders must walk. The game prevents you from
 fully walling off the exit.
+
+**Theme.** You are the dragon. The map is your lair; the exit is your hoard.
+Adventurers raid in from the entrance to reach the gold — each one that gets
+through steals a life. You shape the labyrinth with stationed monsters, but an
+ancient geas means the way to the hoard can never be fully sealed (that *is* the
+true-mazing rule, made diegetic). Flaunted wealth raises the **Bounty** and
+draws braver, beefier raiders; gold sunk into a sealed vault is just rumour, so
+it never raises the Bounty — which is why vaults are threat-exempt.
+
+> Names are flavour over the same mechanics. In the code (`src/config.ts`) the
+> building ids are unchanged: `gun`/`cannon`/`mortar`/`sniper` are the attack
+> guardians **Imp / Ogre / Gargoyle / Basilisk**; `farm`/`mill`/`bank`/`amp` are
+> **Gold Vein / Taskmaster / Deep Vault / War Drum**.
 
 ## Stack
 
@@ -23,7 +36,7 @@ npm run preview  # serve the production build
 
 The game opens on a **level-select** screen. Each level is its own map — grid
 size, spawn/exit positions, pre-blocked **walls** to maze around, starting
-money/lives, and wave curve. Clear a level to unlock the next; cleared levels are
+gold/lives, and raid curve. Clear a level to unlock the next; cleared levels are
 remembered across reloads (`localStorage`). On a win you can jump straight to the
 next level, replay, or return to the menu.
 
@@ -34,51 +47,55 @@ replay cleared levels for a higher score.
 
 ## How it plays
 
-- Towers are split into three panels: **Attack** (selected with `1`–`4`),
+- Guardians are split into three panels: **Attack** (selected with `1`–`4`),
   **Economy** (gold-coded, `Shift`+`1`–`Shift`+`3`) and **Boost** (coral-coded,
-  `Alt`+`1`). Click a tower button or press its key; `Esc` deselects.
-- **Click** the grid to build one tower, or **click-and-drag** to mass-build along
-  the cursor path.
-- **Right-click** a tower for its context menu: sell it (70% refund), and — for
-  attack towers — pick a **target priority** (First, Last, Closest, Strongest,
-  Weakest). Each attack tower type ships with a sensible default (e.g. Cannon and
-  Sniper open on *Strongest*); the menu setting overrides it per tower.
-- Tower types: **Gun**, **Cannon**, **Sniper** and **Mortar** attack (the Sniper
-  fires slowly but hits a single target very hard from long range; the Mortar
-  deals splash damage to every enemy near its impact); **Farm** pays out a fixed sum at the
-  start of each wave; **Mill** boosts the income of farms in the 8 surrounding
-  cells; **Bank** pays interest on your current money at the start of each wave;
-  **Amplifier** boosts the damage of attack towers in range (bonuses stack).
-- Towers reshape the enemy path. Placements that would trap enemies or seal the
-  exit are rejected (the hover cell turns red).
-- Hit the **☢ Nuke** button (or press `N`) to wipe every enemy currently on the
-  board — a one-shot panic button refreshed once per level. It pays no kill
-  reward (a bailout, not a payout) and in-flight wave spawns still arrive.
-  **Bosses are immune** — the finale has to be fought down.
-- Click **Start Wave** to send the next wave. Starting early (within the build
-  window) pays a cash bonus per second skipped. Enable **Auto-start waves** (off
-  by default) to fire each wave automatically when the window elapses.
+  `Alt`+`1`). Click a button or press its key; `Esc` deselects.
+- **Click** the grid to build one guardian, or **click-and-drag** to mass-build
+  along the cursor path.
+- **Right-click** a guardian for its context menu: tear it down (70% refund),
+  and — for attack guardians — pick a **target priority** (First, Last, Closest,
+  Strongest, Weakest). Each attack type ships with a sensible default (e.g. Ogre
+  and Basilisk open on *Strongest*); the menu setting overrides it per guardian.
+- Guardian types — **attack:** **Imp** (rapid firebolts), **Ogre** (slow, heavy
+  lobbed boulders), **Gargoyle** (arcing fire-spit that bursts for splash damage
+  on a bunched-up party) and **Basilisk** (fires slowly but petrifies a single
+  target very hard from long range). **Economy:** **Gold Vein** pays out a fixed
+  sum at the start of each raid; **Taskmaster** drives the Veins in the 8
+  surrounding cells harder; **Deep Vault** pays interest on your current gold at
+  the start of each raid. **Boost:** **War Drum** rallies attack guardians in
+  range for bonus damage (bonuses stack).
+- Guardians reshape the raiders' path. Placements that would trap raiders or seal
+  the exit are rejected (the hover cell turns red).
+- Hit the **🔥 Breath** button (or press `N`) to scorch every raider currently on
+  the board — a one-shot panic button refreshed once per level. It recovers no
+  loot (a bailout, not a payout) and in-flight spawns still arrive.
+  **Champions are immune** — the finale has to be fought down.
+- Click **Send Raid** to summon the next wave. Sending early (within the build
+  window) pays a gold bonus per second skipped. Enable **Auto-send raids** (off
+  by default) to fire each raid automatically when the window elapses.
 - Use the **speed** buttons (`1×`–`10×`) to fast-forward the simulation; higher
   speeds run extra fixed substeps per frame rather than scaling the timestep, so
   pathing and projectile homing stay stable.
-- Kills earn money; leaks cost lives. Survive all waves to win.
-- **Unlockable towers:** you start with **Gun**, **Cannon**, **Farm** and
-  **Bank**. Clearing levels permanently unlocks the rest — **Mill** (Open Field),
-  **Amplifier** (The Pillars), **Mortar** (The Funnel) and **Sniper** (The Core).
-  Unlocks are global: once earned, a tower is buildable on every level (locked
-  towers show a 🔒 and the level that unlocks them). This is the carrot for
-  finishing — the full toolkit makes earlier levels a different puzzle on replay.
-- **Boss finale:** every level's last wave is a single **boss** — a huge, slow,
-  distinctly-coloured unit. Its HP scales with your locked-in **Threat**, so a
-  greedy economy makes the climax tougher (its spawn *count* never scales — a
-  boss is always one unit).
-- Clearing a wave pays a **gold bonus** that scales with the wave number.
-- **Threat scaling:** enemy HP **and spawn count** rise with the number of
-  threat-driving economy buildings you have standing — **Farms** and **Mills**
-  (`+20%` each by default). **Banks are exempt** and never raise threat. The
-  **Threat** meter shows the multiplier; it locks in when a wave starts.
-  Selling economy lowers it — but costs you the income, so dodging by
-  tearing-down is self-defeating.
+- Kills earn gold; leaks cost lives. Survive all raids to win.
+- **Unlockable guardians:** you start with the **Imp**, **Ogre**, **Gold Vein**
+  and **Deep Vault**. Clearing lairs permanently unlocks the rest —
+  **Taskmaster** (The Antechamber), **War Drum** (Stalagmite Hall), **Gargoyle**
+  (The Dragon's Throat) and **Basilisk** (The Inner Sanctum). Unlocks are global:
+  once earned, a guardian is buildable on every lair (locked ones show a 🔒 and
+  the lair that unlocks them). This is the carrot for finishing — the full
+  toolkit makes earlier lairs a different puzzle on replay.
+- **Champion finale:** every lair's last raid is a single **champion** — a huge,
+  slow, distinctly-coloured hero answering the Bounty. Its HP scales with your
+  locked-in **Threat**, so a greedy economy makes the climax tougher (its spawn
+  *count* never scales — a champion is always one unit).
+- Clearing a raid pays a **gold bonus** that scales with the raid number.
+- **Threat scaling (the Bounty):** raider HP **and spawn count** rise with the
+  number of threat-driving economy buildings you have standing — **Gold Veins**
+  and **Taskmasters** (`+20%` each by default). **Deep Vaults are exempt** and
+  never raise the Bounty (sheltered gold draws no raiders). The **Threat** meter
+  shows the multiplier; it locks in when a raid starts. Tearing down economy
+  lowers it — but costs you the income, so dodging by demolition is
+  self-defeating.
 
 ## Architecture
 

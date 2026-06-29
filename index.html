@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maze TD</title>
+    <title>The Hoard</title>
     <style>
       :root { color-scheme: dark; }
       * { box-sizing: border-box; }
@@ -146,26 +146,26 @@
         <ul class="hint">
           <li>Pick an attack tower (<kbd>1</kbd>–<kbd>2</kbd>), economy tower (<kbd>⇧1</kbd>–<kbd>⇧3</kbd>) or boost tower (<kbd>⌥1</kbd>), then click or drag on the grid to build.</li>
           <li><kbd>Esc</kbd> deselects.</li>
-          <li>Right-click a tower to sell it (70% refund) or set its target priority.</li>
-          <li>Farms pay out at the start of each wave; Mills boost nearby farms.</li>
-          <li>Banks pay interest each wave.</li>
-          <li>Start a wave early for a cash bonus; clear a wave for a gold bonus that grows with the wave number.</li>
-          <li><kbd>N</kbd> fires your one <b>nuke</b> per level — clears every enemy on the board (no kill reward). Bosses are immune.</li>
-          <li><b>Threat:</b> food buildings (Farm/Mill) attract more and stronger enemies!</li>
-          <li>Clear levels to permanently <b>unlock</b> new towers (Mill, Amplifier, Mortar, Sniper) — used on every level.</li>
-          <li>Each level ends with a ⚠ <b>boss</b> whose HP scales with your locked-in Threat. Keep lives to earn ★★★.</li>
+          <li>Right-click a guardian to sell it (70% refund) or set its target priority.</li>
+          <li>Gold Veins pay out at the start of each wave; Taskmasters drive nearby Veins harder.</li>
+          <li>Deep Vaults pay interest each wave — and never raise the Bounty.</li>
+          <li>Start a wave early for a gold bonus; clear a wave for a gold bonus that grows with the wave number.</li>
+          <li><kbd>N</kbd> unleashes your one <b>Dragon's Breath</b> per level — scorches every raider on the board (recovers no loot). Champions are immune.</li>
+          <li><b>Threat:</b> open wealth (Gold Vein/Taskmaster) raises the Bounty — more and stronger raiders answer!</li>
+          <li>Clear lairs to permanently <b>unlock</b> new guardians (Taskmaster, War Drum, Gargoyle, Basilisk) — used on every lair.</li>
+          <li>Each lair ends with a ⚠ <b>champion</b> whose HP scales with your locked-in Threat. Keep treasure to earn ★★★.</li>
         </ul>
       </div>
       <div id="panel">
         <div class="stats">
           <div>Level: <b id="level-name">—</b></div>
-          <div>Money: <b id="money">0</b></div>
-          <div title="Money your farms pay out at the start of each wave">
+          <div>Gold: <b id="money">0</b></div>
+          <div title="Gold your veins pay out at the start of each wave">
             Income: <b id="income">0</b>/wave
           </div>
           <div>Lives: <b id="lives">0</b></div>
           <div>Wave: <b id="wave">0</b></div>
-          <div title="Food buildings (Farm/Mill) attract more and stronger enemies">
+          <div title="Open wealth (Gold Veins/Taskmasters) raises the Bounty — more and stronger raiders answer">
             Threat: <b id="threat">×1.0</b>
           </div>
         </div>
@@ -175,10 +175,10 @@
         <div class="towers" id="eco-towers"></div>
         <div class="bar-label">Boost</div>
         <div class="towers" id="boost-towers"></div>
-        <button class="primary" id="start">Start Wave</button>
-        <button class="nuke" id="nuke" title="One per level: wipe every enemy on the board (no kill reward)">☢ Nuke (1)</button>
+        <button class="primary" id="start">Send Raid</button>
+        <button class="nuke" id="nuke" title="One per level: scorch every raider on the board (recovers no loot)">🔥 Breath (1)</button>
         <div class="speed" id="speed" title="Fast-forward the simulation"></div>
-        <label class="toggle"><input type="checkbox" id="auto" /> Auto-start waves</label>
+        <label class="toggle"><input type="checkbox" id="auto" /> Auto-send raids</label>
         <div id="message"></div>
       </div>
     </div>
@@ -199,8 +199,8 @@
       </div>
     </div>
     <div id="levels">
-      <h1>Maze Topia</h1>
-      <p class="hint">Pick a level — clear one to unlock the next and earn up to ★★★ for keeping your lives. Progress is saved.</p>
+      <h1>The Hoard</h1>
+      <p class="hint">You are the dragon. Shape the lair so raiders never reach your gold — clear a lair to unlock the next and earn up to ★★★ for the treasure you keep. Progress is saved.</p>
       <div id="level-list"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>

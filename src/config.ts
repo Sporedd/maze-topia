@@ -33,21 +33,21 @@ export function starsForResult(livesLeft: number, startLives: number): number {
 }
 
 export const COLORS = {
-  bgEven: 0x121821,
-  bgOdd: 0x161d28,
-  grid: 0x1f2630,
-  wall: 0x2d333b,
-  spawn: 0x3fb950,
-  exit: 0xf85149,
-  towerBody: 0x58a6ff,
-  enemy: 0xffa657,
+  bgEven: 0x14100c, // warm cave stone
+  bgOdd: 0x191309,
+  grid: 0x2a2018,
+  wall: 0x3b2f24, // hewn rock
+  spawn: 0x4f9d44, // the dungeon mouth raiders pour from
+  exit: 0xff5630, // the glowing hoard at the heart
+  towerBody: 0xff7b3a,
+  enemy: 0xb8c4d0, // cold steel invaders against the warm lair
   enemyHpBg: 0x30363d,
   enemyHp: 0x3fb950,
-  projectile: 0xffd33d,
-  rangeOk: 0x58a6ff,
-  rangeBad: 0xf85149,
-  boss: 0xf778ba,
-  bossHp: 0xf778ba,
+  projectile: 0xffb648,
+  rangeOk: 0xffb648,
+  rangeBad: 0xff5630,
+  boss: 0xd65ad6, // a named champion answering the Bounty
+  bossHp: 0xd65ad6,
 } as const;
 
 export type TowerKind = 'attack' | 'farm' | 'bank' | 'mill' | 'amp';
@@ -97,10 +97,10 @@ export interface TowerDef {
 export const TOWER_DEFS: TowerDef[] = [
   {
     id: 'gun',
-    name: 'Gun',
+    name: 'Imp',
     kind: 'attack',
     cost: 50,
-    color: 0x58a6ff,
+    color: 0xff6b4a, // ember firebolts
     range: 2.5 * CELL,
     fireRate: 3,
     damage: 6,
@@ -114,10 +114,10 @@ export const TOWER_DEFS: TowerDef[] = [
   },
   {
     id: 'cannon',
-    name: 'Cannon',
+    name: 'Ogre',
     kind: 'attack',
     cost: 120,
-    color: 0xbc8cff,
+    color: 0x9a8470, // hurled boulders
     range: 3.2 * CELL,
     fireRate: 0.8,
     damage: 40,
@@ -131,10 +131,10 @@ export const TOWER_DEFS: TowerDef[] = [
   },
   {
     id: 'mortar',
-    name: 'Mortar',
+    name: 'Gargoyle',
     kind: 'attack',
     cost: 160,
-    color: 0xf0883e,
+    color: 0xf0a83e, // arcing fire-spit that bursts
     range: 3.5 * CELL,
     fireRate: 0.6,
     damage: 22,
@@ -149,10 +149,10 @@ export const TOWER_DEFS: TowerDef[] = [
   },
   {
     id: 'sniper',
-    name: 'Sniper',
+    name: 'Basilisk',
     kind: 'attack',
     cost: 200,
-    color: 0x79c0ff,
+    color: 0x8be04a, // petrifying gaze-bolt
     range: 8 * CELL, // picks off enemies from across the board
     fireRate: 0.5,
     damage: 80, // long reach traded for a softer hit
@@ -167,10 +167,10 @@ export const TOWER_DEFS: TowerDef[] = [
   },
   {
     id: 'farm',
-    name: 'Farm',
+    name: 'Gold Vein',
     kind: 'farm',
     cost: 100,
-    color: 0x3fb950,
+    color: 0xffd24a, // raw ore glittering in the open
     range: 0,
     fireRate: 0,
     damage: 0,
@@ -183,10 +183,10 @@ export const TOWER_DEFS: TowerDef[] = [
   },
   {
     id: 'bank',
-    name: 'Bank',
+    name: 'Deep Vault',
     kind: 'bank',
     cost: 250,
-    color: 0xffd33d,
+    color: 0xc89b2e, // hidden gold, no Bounty
     range: 0,
     fireRate: 0,
     damage: 0,
@@ -199,10 +199,10 @@ export const TOWER_DEFS: TowerDef[] = [
   },
   {
     id: 'mill',
-    name: 'Mill',
+    name: 'Taskmaster',
     kind: 'mill',
     cost: 150,
-    color: 0x39c5cf,
+    color: 0xc56a3a, // whips nearby veins to dig faster
     range: 1.8 * CELL, // reaches the 8 surrounding cells
     fireRate: 0,
     damage: 0,
@@ -216,10 +216,10 @@ export const TOWER_DEFS: TowerDef[] = [
   },
   {
     id: 'amp',
-    name: 'Amplifier',
+    name: 'War Drum',
     kind: 'amp',
     cost: 175,
-    color: 0xff7b72,
+    color: 0xe5484d, // rallies nearby guardians
     range: 2.5 * CELL,
     fireRate: 0,
     damage: 0,
@@ -280,8 +280,8 @@ function rect(x0: number, y0: number, x1: number, y1: number): Point[] {
 export const LEVELS: LevelDef[] = [
   {
     id: 'open-field',
-    name: 'Open Field',
-    blurb: 'Wide open ground — your towers are the only walls.',
+    name: 'The Antechamber',
+    blurb: 'Bare rock to the hoard — your guardians are the only walls.',
     cols: 40,
     rows: 28,
     spawn: { x: 0, y: 14 },
@@ -304,8 +304,8 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'the-pillars',
-    name: 'The Pillars',
-    blurb: 'Stone pillars you must weave around. Less cash to start.',
+    name: 'Stalagmite Hall',
+    blurb: 'Stone teeth the raiders must weave around. Less gold to start.',
     cols: 34,
     rows: 24,
     spawn: { x: 0, y: 2 },
@@ -331,8 +331,8 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'the-funnel',
-    name: 'The Funnel',
-    blurb: 'A narrow gap halfway across forces every enemy through one chokepoint.',
+    name: "The Dragon's Throat",
+    blurb: 'A narrow gap halfway in forces every raider through one chokepoint.',
     cols: 44,
     rows: 30,
     spawn: { x: 0, y: 15 },
@@ -359,8 +359,8 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'the-core',
-    name: 'The Core',
-    blurb: 'The exit sits dead centre — enemies spiral inward through two rings.',
+    name: 'The Inner Sanctum',
+    blurb: 'The hoard sits dead centre — raiders spiral inward through two rings.',
     cols: 41,
     rows: 29,
     spawn: { x: 0, y: 0 },
