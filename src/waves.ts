@@ -33,6 +33,16 @@ export class WaveManager {
     return this.current < this.waves.length - 1;
   }
 
+  /** Whether the wave currently running is a boss wave. */
+  get currentIsBoss(): boolean {
+    return this.active && Boolean(this.waves[this.current]?.boss);
+  }
+
+  /** Whether the next wave to start (while idle) is a boss wave. */
+  get nextIsBoss(): boolean {
+    return !this.active && this.hasMoreWaves && Boolean(this.waves[this.current + 1]?.boss);
+  }
+
   /**
    * Begin the next wave at the given threat multiplier (scales both enemy HP
    * and spawn count). Returns false if a wave is running or none remain.
@@ -41,7 +51,9 @@ export class WaveManager {
     if (this.active || !this.hasMoreWaves) return false;
     this.current += 1;
     this.threat = threat;
-    this.toSpawn = Math.round(this.waves[this.current].count * threat);
+    // A boss is a single unit: threat scales its HP (below) but never its count.
+    const wave = this.waves[this.current];
+    this.toSpawn = wave.boss ? wave.count : Math.round(wave.count * threat);
     this.timer = 0;
     this.active = true;
     return true;
@@ -55,7 +67,13 @@ export class WaveManager {
     this.timer -= dt;
     while (this.toSpawn > 0 && this.timer <= 0) {
       spawned.push(
-        new Enemy(this.spawn, Math.round(wave.hp * this.threat), wave.speed, wave.reward),
+        new Enemy(
+          this.spawn,
+          Math.round(wave.hp * this.threat),
+          wave.speed,
+          wave.reward,
+          wave.boss,
+        ),
       );
       this.toSpawn -= 1;
       this.timer += wave.interval;

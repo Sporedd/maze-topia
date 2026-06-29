@@ -4,11 +4,11 @@ import { Cell, type Grid } from './grid.ts';
 import type { Enemy } from './enemy.ts';
 import type { Tower } from './tower.ts';
 import type { Projectile } from './projectile.ts';
-import type { TowerDef } from './config.ts';
+import type { TargetingMode, TowerDef } from './config.ts';
 
 export class Renderer {
   readonly app = new Application();
-  private readonly board = new Graphics(); // grid + towers, redrawn on change
+  private readonly board = new Graphics(); // grid + towers + targeting icons, redrawn on change
   private readonly dynamic = new Graphics(); // enemies + projectiles, every frame
   private readonly preview = new Graphics(); // hover range + placement validity
 
@@ -52,22 +52,61 @@ export class Renderer {
       g.rect(t.cx * CELL + 4, t.cy * CELL + 4, CELL - 8, CELL - 8)
         .fill(t.def.color)
         .stroke({ width: 2, color: 0x0d1117 });
+      // Mark attack towers whose targeting differs from their type default, so a
+      // non-default priority is visible without opening the menu.
+      if (t.def.kind === 'attack' && t.effectiveTargeting !== (t.def.defaultTargeting ?? 'first')) {
+        this.drawTargetingIcon(g, t.effectiveTargeting, t.cx, t.cy);
+      }
+    }
+  }
+
+  /**
+   * Small corner icon for a non-default targeting mode, drawn into the board
+   * Graphics (no textures, batches with everything else). Shapes are only meant
+   * to be distinguishable — the right-click menu carries the actual labels.
+   * first ▶ / last ◀ / strongest ▲ / weakest ▽ / closest ◎.
+   */
+  private drawTargetingIcon(g: Graphics, mode: TargetingMode, cx: number, cy: number): void {
+    const x = cx * CELL + CELL - 8; // top-right corner of the tower body
+    const y = cy * CELL + 8;
+    const s = 4;
+    const fg = 0xffffff;
+    g.circle(x, y, s + 2).fill({ color: 0x0d1117, alpha: 0.85 }); // dark backing for contrast
+    switch (mode) {
+      case 'first': // right-pointing triangle: front of the line
+        g.poly([x - s * 0.7, y - s, x - s * 0.7, y + s, x + s, y]).fill(fg);
+        break;
+      case 'last': // left-pointing triangle: back of the line
+        g.poly([x + s * 0.7, y - s, x + s * 0.7, y + s, x - s, y]).fill(fg);
+        break;
+      case 'strongest': // filled up-triangle: most HP
+        g.poly([x - s, y + s * 0.7, x + s, y + s * 0.7, x, y - s]).fill(fg);
+        break;
+      case 'weakest': // hollow down-triangle: least HP
+        g.poly([x - s, y - s * 0.7, x + s, y - s * 0.7, x, y + s]).stroke({ width: 1.2, color: fg });
+        break;
+      case 'closest': // ring + dot: proximity to the tower
+        g.circle(x, y, s).stroke({ width: 1.2, color: fg });
+        g.circle(x, y, 1).fill(fg);
+        break;
     }
   }
 
   drawDynamic(enemies: Enemy[], projectiles: Projectile[]): void {
     const g = this.dynamic;
     g.clear();
-    const r = CELL * 0.3;
     for (const e of enemies) {
-      g.circle(e.x, e.y, r).fill(COLORS.enemy);
+      // Bosses read as a bigger, distinctly-coloured threat with a wider bar.
+      const r = CELL * (e.isBoss ? 0.6 : 0.3);
+      g.circle(e.x, e.y, r).fill(e.isBoss ? COLORS.boss : COLORS.enemy);
+      if (e.isBoss) g.circle(e.x, e.y, r).stroke({ width: 2, color: 0x0d1117 });
       // HP bar
-      const w = CELL * 0.6;
+      const w = CELL * (e.isBoss ? 1.2 : 0.6);
       const frac = Math.max(0, e.hp / e.maxHp);
       const bx = e.x - w / 2;
       const by = e.y - r - 6;
       g.rect(bx, by, w, 3).fill(COLORS.enemyHpBg);
-      g.rect(bx, by, w * frac, 3).fill(COLORS.enemyHp);
+      g.rect(bx, by, w * frac, 3).fill(e.isBoss ? COLORS.bossHp : COLORS.enemyHp);
     }
     for (const p of projectiles) {
       if (p.shape === 'rect') {

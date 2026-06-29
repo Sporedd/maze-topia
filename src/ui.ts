@@ -3,7 +3,9 @@ import {
   GAME_SPEEDS,
   LEVELS,
   SPLASH_DAMAGE_FRACTION,
+  TARGETING_MODES,
   TOWER_DEFS,
+  starsForResult,
   type LevelDef,
   type Point,
   type TowerDef,
@@ -59,11 +61,13 @@ export class UI {
   private readonly levelName = document.getElementById('level-name')!;
   private readonly message = document.getElementById('message')!;
   private readonly startBtn = document.getElementById('start') as HTMLButtonElement;
+  private readonly nukeBtn = document.getElementById('nuke') as HTMLButtonElement;
   private readonly towersEl = document.getElementById('towers')!;
   private readonly ecoTowersEl = document.getElementById('eco-towers')!;
   private readonly boostTowersEl = document.getElementById('boost-towers')!;
   private readonly overlay = document.getElementById('overlay')!;
   private readonly overlayTitle = document.getElementById('overlay-title')!;
+  private readonly overlayStars = document.getElementById('overlay-stars')!;
   private readonly nextBtn = document.getElementById('next-level') as HTMLButtonElement;
   private readonly retryBtn = document.getElementById('retry') as HTMLButtonElement;
   private readonly menuBtn = document.getElementById('to-menu') as HTMLButtonElement;
@@ -71,6 +75,8 @@ export class UI {
   private readonly levelList = document.getElementById('level-list')!;
   private readonly contextMenu = document.getElementById('context-menu')!;
   private readonly sellOption = document.getElementById('sell-option') as HTMLButtonElement;
+  private readonly targetingRow = document.getElementById('targeting-row')!;
+  private readonly targetingSelect = document.getElementById('targeting-select') as HTMLSelectElement;
   private readonly autoToggle = document.getElementById('auto') as HTMLInputElement;
   private readonly speedEl = document.getElementById('speed')!;
   private readonly buttons = new Map<string, HTMLButtonElement>();
@@ -115,6 +121,7 @@ export class UI {
       this.speedButtons.set(speed, btn);
     });
     this.startBtn.addEventListener('click', () => this.getGame()?.startWave());
+    this.nukeBtn.addEventListener('click', () => this.getGame()?.nuke());
     this.nextBtn.addEventListener('click', () => this.callbacks.nextLevel());
     this.retryBtn.addEventListener('click', () => this.callbacks.restart());
     this.menuBtn.addEventListener('click', () => this.callbacks.menu());
@@ -122,6 +129,10 @@ export class UI {
       const game = this.getGame();
       if (game) game.autoStart = this.autoToggle.checked;
     });
+    this.targetingSelect.append(
+      ...TARGETING_MODES.map(({ id, label }) => new Option(label, id)),
+    );
+    this.targetingSelect.addEventListener('change', () => this.setTargetingFromContextMenu());
     this.sellOption.addEventListener('click', () => this.sellFromContextMenu());
     // Any click outside the menu dismisses it (also fires before a right-click reopens it).
     document.addEventListener('pointerdown', (ev) => {
@@ -139,6 +150,9 @@ export class UI {
     }
     this.contextCell = cell;
     this.sellOption.textContent = `Sell tower (+$${value})`;
+    const targeting = this.getGame()?.targetingAt(cell.x, cell.y) ?? null;
+    this.targetingRow.style.display = targeting ? 'flex' : 'none';
+    if (targeting) this.targetingSelect.value = targeting;
     this.contextMenu.style.left = `${clientX}px`;
     this.contextMenu.style.top = `${clientY}px`;
     this.contextMenu.style.display = 'block';
@@ -153,6 +167,15 @@ export class UI {
     const game = this.getGame();
     if (game && this.contextCell) game.sellAt(this.contextCell.x, this.contextCell.y);
     this.closeContextMenu();
+  }
+
+  /** Apply the chosen target priority; leaves the menu open so the change is visible. */
+  private setTargetingFromContextMenu(): void {
+    const game = this.getGame();
+    const mode = TARGETING_MODES.find((m) => m.id === this.targetingSelect.value);
+    if (game && mode && this.contextCell) {
+      game.setTargetingAt(this.contextCell.x, this.contextCell.y, mode.id);
+    }
   }
 
   /** Render and show the level-select screen; hide the end-of-game overlay. */
@@ -174,12 +197,15 @@ export class UI {
     const unlocked = this.progress.isUnlocked(index);
     const cleared = this.progress.isCleared(level.id);
     const badge = cleared ? '✓ cleared' : unlocked ? `${level.waves.length} waves` : '🔒 locked';
+    const stars = cleared
+      ? `<span class="stars">${this.starString(this.progress.bestStars(level.id))}</span>`
+      : '';
     const btn = document.createElement('button');
     btn.className = 'level-card';
     btn.disabled = !unlocked;
     btn.innerHTML =
       `<b>${index + 1}. ${level.name}</b>` +
-      `<span class="badge">${badge}</span>` +
+      `<span class="badge">${badge}${stars}</span>` +
       `<small>${level.blurb}</small>`;
     btn.addEventListener('click', () => this.callbacks.selectLevel(level));
     return btn;
@@ -188,7 +214,19 @@ export class UI {
   private toggleSelect(id: string): void {
     const game = this.getGame();
     if (!game) return;
+    const def = TOWER_DEFS.find((t) => t.id === id);
+    if (def && !this.progress.isTowerUnlocked(def)) return; // locked — not buildable yet
     game.selectTower(game.selected?.id === id ? null : id);
+  }
+
+  /** Three-glyph star rating, e.g. ★★☆ for 2 of 3. */
+  private starString(stars: number): string {
+    return '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  }
+
+  /** Display name of the level a tower's unlock is gated behind. */
+  private unlockLevelName(id: string | undefined): string {
+    return LEVELS.find((l) => l.id === id)?.name ?? 'a later level';
   }
 
   /** 1‑N attack, Shift+1‑N economy, Alt+1‑N boost; Escape deselects. */
@@ -198,6 +236,11 @@ export class UI {
     if (ev.key === 'Escape') {
       game.selectTower(null);
       this.closeContextMenu();
+      return;
+    }
+    if (ev.code === 'KeyN') {
+      ev.preventDefault();
+      game.nuke();
       return;
     }
     // Use the physical digit key so a modifier's shifted symbol (e.g. "!") doesn't matter.
@@ -212,7 +255,7 @@ export class UI {
   }
 
   private activeMessage(g: Game): string {
-    const parts = ['Wave in progress…'];
+    const parts = [g.waves.currentIsBoss ? '⚠ BOSS WAVE in progress…' : 'Wave in progress…'];
     if (g.lastEarlyBonus > 0) parts.push(`early +$${g.lastEarlyBonus}`);
     if (g.lastFarmIncome > 0) parts.push(`farms +$${g.lastFarmIncome}`);
     if (g.lastBankInterest > 0) parts.push(`bank +$${g.lastBankInterest}`);
@@ -221,6 +264,7 @@ export class UI {
 
   private idleMessage(g: Game, countdown: number | null): string {
     const parts: string[] = [];
+    if (g.waves.nextIsBoss) parts.push('⚠ BOSS WAVE next');
     if (g.lastWaveBonus > 0) parts.push(`Wave cleared: +$${g.lastWaveBonus}`);
     if (g.pendingEarlyBonus > 0) parts.push(`Start now: +$${g.pendingEarlyBonus} bonus`);
     if (g.autoStart && countdown !== null) parts.push(`auto in ${countdown}s`);
@@ -237,11 +281,16 @@ export class UI {
     const threat = g.waves.isActive ? g.currentThreat : g.threatMultiplier;
     this.threat.textContent = `×${threat.toFixed(2)}${g.waves.isActive ? '' : ' (next)'}`;
     this.startBtn.disabled = !g.canStartWave;
+    this.nukeBtn.disabled = !g.canNuke;
+    this.nukeBtn.textContent = g.nukeUsed ? '☢ Nuke (spent)' : '☢ Nuke (1)';
 
     for (const [id, btn] of this.buttons) {
       const def = TOWER_DEFS.find((t) => t.id === id)!;
+      const locked = !this.progress.isTowerUnlocked(def);
       btn.classList.toggle('selected', g.selected?.id === id);
-      btn.disabled = !g.canAfford(def);
+      btn.classList.toggle('locked', locked);
+      btn.disabled = locked || !g.canAfford(def);
+      btn.title = locked ? `Unlock by clearing ${this.unlockLevelName(def.unlockLevel)}` : '';
     }
 
     this.autoToggle.checked = g.autoStart;
@@ -261,6 +310,14 @@ export class UI {
     } else {
       const won = g.status === 'won';
       this.overlayTitle.textContent = won ? 'Level cleared! 🎉' : 'Game over 💀';
+      if (won) {
+        const stars = starsForResult(g.lives, g.level.startLives);
+        const best = this.progress.bestStars(g.level.id);
+        this.overlayStars.textContent = `${this.starString(stars)} · best ${this.starString(best)}`;
+        this.overlayStars.style.display = 'block';
+      } else {
+        this.overlayStars.style.display = 'none';
+      }
       const hasNext = won && this.hasNextLevel(g.level);
       this.nextBtn.style.display = hasNext ? 'inline-block' : 'none';
       this.retryBtn.textContent = won ? 'Replay' : 'Retry';

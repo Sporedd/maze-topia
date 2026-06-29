@@ -7,6 +7,7 @@ import {
   ECONOMY_THREAT_PER_BUILDING,
   TOWER_DEFS,
   type LevelDef,
+  type TargetingMode,
   type TowerDef,
   type TowerKind,
 } from './config.ts';
@@ -49,6 +50,8 @@ export class Game {
   private bonusPaidForWave = -1;
   /** Enemy-HP multiplier locked in for the wave currently running. */
   currentThreat = 1;
+  /** The one-shot panic nuke; spent once per level (fresh on each level load). */
+  nukeUsed = false;
 
   constructor(readonly level: LevelDef) {
     this.grid = new Grid(level);
@@ -108,6 +111,21 @@ export class Game {
     return true;
   }
 
+  /** Current target priority of the attack tower at this cell, or null if none. */
+  targetingAt(x: number, y: number): TargetingMode | null {
+    const t = this.towers.find((tw) => tw.cx === x && tw.cy === y);
+    return t && t.def.kind === 'attack' ? t.effectiveTargeting : null;
+  }
+
+  /** Override the target priority of the attack tower at this cell. */
+  setTargetingAt(x: number, y: number, mode: TargetingMode): boolean {
+    const t = this.towers.find((tw) => tw.cx === x && tw.cy === y);
+    if (!t || t.def.kind !== 'attack') return false;
+    t.targeting = mode;
+    this.boardDirty = true; // refresh the per-tower targeting glyph
+    return true;
+  }
+
   startWave(): boolean {
     if (this.status !== 'playing') return false;
     const earlyBonus = (this.nextWaveCountdown ?? 0) * EARLY_BONUS_PER_SECOND;
@@ -133,6 +151,24 @@ export class Game {
     this.lastFarmIncome = farmIncome;
 
     this.nextWaveTimer = AUTO_START_DELAY;
+    return true;
+  }
+
+  /** Whether the one-shot nuke can be fired right now (bosses don't count). */
+  get canNuke(): boolean {
+    return this.status === 'playing' && !this.nukeUsed && this.enemies.some((e) => !e.isBoss);
+  }
+
+  /**
+   * Spend the level's single nuke: wipe every non-boss enemy on the board with
+   * no kill reward (a bailout, not a payout — so it can't be farmed for money).
+   * Bosses are immune, so the climax must be fought down. In-flight wave spawns
+   * still arrive.
+   */
+  nuke(): boolean {
+    if (!this.canNuke) return false;
+    this.enemies = this.enemies.filter((e) => e.isBoss);
+    this.nukeUsed = true;
     return true;
   }
 

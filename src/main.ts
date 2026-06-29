@@ -1,4 +1,4 @@
-import { LEVELS, type LevelDef, type Point } from './config.ts';
+import { LEVELS, starsForResult, type LevelDef, type Point } from './config.ts';
 import { Renderer } from './renderer.ts';
 import { Game } from './game.ts';
 import { Progress } from './progress.ts';
@@ -111,7 +111,7 @@ async function boot(): Promise<void> {
     }
 
     if (game.status === 'won' && !clearRecorded) {
-      progress.markCleared(game.level.id);
+      progress.recordClear(game.level.id, starsForResult(game.lives, game.level.startLives));
       clearRecorded = true;
     }
 
